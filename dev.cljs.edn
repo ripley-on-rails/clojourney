@@ -1,0 +1,7 @@
+^{:watch-dirs ["test" "src/cljs"]
+  :css-dirs ["resources/public/css"]
+  :auto-testing true
+  }
+{:main clork.view
+ ;;:npm-deps {:install true}
+ }

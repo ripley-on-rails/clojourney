@@ -1,0 +1,51 @@
+
+div.reply {
+    border: 2px solid #333; /* Adjust the border color and width as needed */
+    border-radius: 15px; /* Adjust the radius to control the roundness */
+    padding: 10px; /* Optional: Add some padding inside the border */
+    margin: 10px 0; /* Optional: Add some margin between paragraphs */
+    background-color: #f9f9f9; /* Optional: Set a background color */
+}
+
+div.user {
+    background-color: #fdf;
+}
+
+div.game {
+    background-color: #ddf;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif; /* Set the font for the entire page */
+}
+
+.content input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 8px; /* Adjust this value for the desired roundness */
+    border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+}
+
+.content {
+    width: 100%; /* Full width by default */
+    height: 100vh; /* Full height of the viewport */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    padding: 20px; /* Padding for inner spacing */
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+    .content {
+	width: auto ; /* Adjust the percentage to achieve the desired width */
+	max-width: 800px; /* Maximum width to ensure readability */
+	margin: 0 auto; /* Center the element horizontally */
+	height: auto; /* Allow the height to adjust based on content */
+    }
+} 
