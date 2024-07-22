@@ -1,4 +1,5 @@
 pom.xml
+log.txt
 *jar
 /lib/
 /classes/

@@ -3,8 +3,21 @@
    [ollama-whisperer.core :as ow]
    [clork.server :refer [new-web-server]]
    [clork.handler :refer [app]]
-   [com.stuartsierra.component :as component])
+   [com.stuartsierra.component :as component]
+   [taoensso.timbre :as timbre
+    ;; Optional, just refer what you like:
+    :refer [log  trace  debug  info  warn  error  fatal  report
+            logf tracef debugf infof warnf errorf fatalf reportf
+            spy]]
+   [taoensso.timbre.appenders.core :as appenders])
   (:gen-class))
+
+(timbre/set-ns-min-level! #"clork.*" :info #_[#{"*"} :debug])
+
+(timbre/merge-config!
+ {:appenders {:spit (appenders/spit-appender {:fname "log.txt"})
+              :println {:enabled? false}}
+  :min-level [["clork.*" :info] ["#{\"clork.*\"}" :info] ["*" :error]]})
 
 (def host ow/default-host)
 

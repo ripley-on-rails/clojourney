@@ -9,57 +9,82 @@
    [reagent.dom :as rdom]))
 
 (defonce app-state (atom {:history []
-                          :text ""}))
+                          :text ""
+                          :spinner false}))
 
 (defn get-app-element [] 
   (gdom/getElement "app"))
 
-(defn append-to-history! [msg]
-  (prn "!")
+(defn append-to-history! [msgs]
   (swap! app-state
          (fn [s]
-           (update s :history #(conj % msg)))))
+           (update s :history #(concat % msgs)))))
+
+(defn idp [x] (prn x) x)
+
+(defn process-server-response [response]
+  (cond
+    (string? response)
+    [{:type :game
+      :text response}]
+
+    (map? response)
+    (remove (comp nil? :text)
+            [{:type :debug
+              :text (dissoc response :rapport :description)}
+             {:type :game
+              :text (:rapport response)} 
+             {:type :game
+              :text (:description response)}])
+
+    :else
+    [{:type :error
+      :text "Error!"}]))
 
 (defn send-input [input]
-  (go (let [response (<! (http/post "http://localhost:3000/action"
-                                    {:with-credentials? false
-                                     :headers {"Accept" "application/edn"}
-                                     :edn-params {:input input}}))]
-        (append-to-history! {:type :game
-                             :text (get-in response [:body :message])})
-        (prn (:body response)))))
+  (go
+    (swap! app-state #(assoc % :spinner true))
+    (let [response (<! (http/post "http://localhost:3000/action"
+                                  {:with-credentials? false
+                                   :headers {"Accept" "application/edn"}
+                                   :edn-params {:input input}}))]
+      (append-to-history! (process-server-response (get-in response [:body :message])))
+      (swap! app-state #(assoc % :spinner false)))))
 
 (defn reset-game []
   (go (let [response (<! (http/post "http://localhost:3000/reset-game"
                                     {:with-credentials? false
                                      :headers {"Accept" "application/edn"}
-                                     :edn-params {:input "foo"}}))]
-        (swap! app-state
-               (fn [s]
-                 (assoc s :history [{:type :game
-                                     :text (get-in response [:body :message])}]))))))
-
+                                     ;;:edn-params {:input "foo"}
+                                     }))]
+        (swap! app-state #(assoc % :history []))
+        (append-to-history! (process-server-response
+                             (get-in response [:body :message]))))))
 
 (defn chat-input [] 
   (let [written-text (atom "")]
     (fn []
-      [:p [:input {:type "text"
-                   :value @written-text
-                   :on-change #(reset! written-text (.. % -target -value))
-                   :on-key-press (fn [e]
-                                   (when (= 13 (.-charCode e))
-                                     (.preventDefault e)
-                                     (let [text @written-text]
-                                       (append-to-history! {:type :user
-                                                            :text text})
-                                       (reset! written-text "")
-                                       (send-input text))))}]])))
+      [:input {:type "text"
+               :value @written-text
+               :on-change #(reset! written-text (.. % -target -value))
+               :on-key-press (fn [e]
+                               (when (= 13 (.-charCode e))
+                                 (.preventDefault e)
+                                 (let [text @written-text]
+                                   (append-to-history! [{:type :user
+                                                         :text text}])
+                                   (reset! written-text "")
+                                   (send-input text))))}])))
 
 (defn render-paragraphs [text]
   (let [lines (str/split-lines text)]
     (map-indexed (fn [idx line]
                    [:p {:key idx} line]) lines))) 
 
+
+(defn- history-entry->items [entry]
+  (prn entry)
+  [entry])
 
 (defn game []
   [:div {:class "content"}
@@ -69,12 +94,22 @@
                                :class (str "reply " (name (:type item)))}
                          (render-paragraphs (:text item))]))
                 (:history @app-state))
-   (if (not (empty? (:history @app-state)))
-     [:h2 "What do you do?"
-      [chat-input]])
-   [:input {:type "button"
-            :value "Start new game"
-            :on-click (fn [] (reset-game)) :href "#"}]])
+   (if (not (:spinner @app-state))
+     [:<>
+      (let [history? (not (empty? (:history @app-state)))]
+        (if (not (empty? (:history @app-state)))
+          [:<>
+           [:h2 "What do you do?"]
+           [:div {:class "input-container"}
+            [chat-input]
+            [:input {:type "button"
+                     :value "Send"
+                     :on-click (fn [] (reset-game)) :href "#"}]]]))
+      [:input {:type "button"
+               :value "Start new game"
+               :class "reset-button"
+               :on-click (fn [] (reset-game)) :href "#"}]]
+     [:span {:class "loader"}])])
 
 (defn mount [el]
   (rdom/render [game] el))

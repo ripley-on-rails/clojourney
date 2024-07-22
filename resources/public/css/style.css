@@ -1,10 +1,30 @@
 
 div.reply {
-    border: 2px solid #333; /* Adjust the border color and width as needed */
+    border: 2px solid #24283b; /* Adjust the border color and width as needed */
     border-radius: 15px; /* Adjust the radius to control the roundness */
-    padding: 10px; /* Optional: Add some padding inside the border */
+    padding: 15px; /* Optional: Add some padding inside the border */
     margin: 10px 0; /* Optional: Add some margin between paragraphs */
     background-color: #f9f9f9; /* Optional: Set a background color */
+    color: #1a1b26;
+
+    animation: fade-in 3s;
+}
+
+@keyframes fade-in {
+    from {
+	opacity: 0;
+    }
+    to {
+	opacity: 100;
+    }
+}
+
+div.reply p:first-of-type {
+    margin-block-start: 0; /* Remove top margin from the first paragraph */
+}
+
+div.reply p:last-of-type {
+    margin-block-end: 0; /* Remove bottom margin from the last paragraph */
 }
 
 div.user {
@@ -20,6 +40,8 @@ body, html {
     padding: 0;
     height: 100%;
     display: flex;
+    background-color: #1a1b26;
+    color: #9aa5ce;
     justify-content: center;
     align-items: center;
     font-family: 'Helvetica Neue', Arial, sans-serif; /* Set the font for the entire page */
@@ -37,15 +59,93 @@ body, html {
     width: 100%; /* Full width by default */
     height: 100vh; /* Full height of the viewport */
     box-sizing: border-box; /* Include padding and border in the element's total width and height */
-    padding: 20px; /* Padding for inner spacing */
+    padding: 20px; /* Padding for inner spacing */  
+}
+
+.content .input-container {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+}
+
+.content .input-container input[type="text"] {
+    flex-grow: 2;
+}
+
+.content .input-container input[type="button"] {
 }
 
 /* Desktop styles */
 @media (min-width: 768px) {
-    .content {
-	width: auto ; /* Adjust the percentage to achieve the desired width */
-	max-width: 800px; /* Maximum width to ensure readability */
-	margin: 0 auto; /* Center the element horizontally */
-	height: auto; /* Allow the height to adjust based on content */
+			   .content {
+				     width: auto ; /* Adjust the percentage to achieve the desired width */
+				     max-width: 800px; /* Maximum width to ensure readability */
+				     margin: 0 auto; /* Center the element horizontally */
+				     height: auto; /* Allow the height to adjust based on content */
+			   }
+}
+
+/* Button */
+
+/* General input button styles */
+input[type="button"] {
+    border: 4px solid #9aa5ce; /* Thick border with main font color */
+    border-radius: 15px; /* Rounded corners */
+    padding: 10px 20px; /* Padding inside the button */
+    font-size: 16px; /* Font size */
+    background-color: #1a1b26; /* Dark background color */
+    color: #9aa5ce; /* Secondary font color */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s, border-color 0.3s; /* Smooth transition */
+}
+
+/* Hover effect */
+input[type="button"]:hover {
+    background-color: #9aa5ce; /* Change background color on hover to main font color */
+    border-color: #9aa5ce; /* Change border color on hover to secondary font color */
+    color: #1a1b26; /* Change text color on hover to dark background color */
+}
+
+/* Focus effect */
+input[type="button"]:focus {
+    outline: none; /* Remove default outline */
+    box-shadow: 0 0 10px rgba(154, 165, 206, 0.5); /* Add a shadow effect with main font color */
+}
+
+
+/* spinner */
+
+
+.loader {
+    
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: table;
+    margin: 0 auto;
+    border-top: 4px solid #faf;
+    border-right: 4px solid transparent;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+.loader::after {
+    content: '';  
+    box-sizing: border-box;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border-bottom: 4px solid #aaf;
+    border-left: 4px solid transparent;
+}
+@keyframes rotation {
+    0% {
+	transform: rotate(0deg);
+    }
+    100% {
+	transform: rotate(360deg);
     }
 } 
