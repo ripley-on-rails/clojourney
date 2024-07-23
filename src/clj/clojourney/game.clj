@@ -1,8 +1,8 @@
-(ns clork.game
-  (:require [clork.ai :as ai]
+(ns clojourney.game
+  (:require [clojourney.ai :as ai]
             [clojure.edn :as edn]
-            [clork.actions :as actions]
-            [clork.util :as util]
+            [clojourney.actions :as actions]
+            [clojourney.util :as util]
             [taoensso.timbre :as timbre :refer [info]]
             [schema.core :as s]))
 

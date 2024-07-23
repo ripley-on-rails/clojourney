@@ -2,6 +2,6 @@
   :css-dirs ["resources/public/css"]
   :auto-testing true
   }
-{:main clork.view
+{:main clojourney.view
  ;;:npm-deps {:install true}
  }

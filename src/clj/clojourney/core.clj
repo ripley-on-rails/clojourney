@@ -1,8 +1,8 @@
-(ns clork.core
+(ns clojourney.core
   (:require
    [ollama-whisperer.core :as ow]
-   [clork.server :refer [new-web-server]]
-   [clork.handler :refer [app]]
+   [clojourney.server :refer [new-web-server]]
+   [clojourney.handler :refer [app]]
    [com.stuartsierra.component :as component]
    [taoensso.timbre :as timbre
     ;; Optional, just refer what you like:
@@ -12,12 +12,12 @@
    [taoensso.timbre.appenders.core :as appenders])
   (:gen-class))
 
-(timbre/set-ns-min-level! #"clork.*" :info #_[#{"*"} :debug])
+(timbre/set-ns-min-level! #"clojourney.*" :info #_[#{"*"} :debug])
 
 (timbre/merge-config!
  {:appenders {:spit (appenders/spit-appender {:fname "log.txt"})
               :println {:enabled? false}}
-  :min-level [["clork.*" :info] ["#{\"clork.*\"}" :info] ["*" :error]]})
+  :min-level [["clojourney.*" :info] ["#{\"clojourney.*\"}" :info] ["*" :error]]})
 
 (def host ow/default-host)
 

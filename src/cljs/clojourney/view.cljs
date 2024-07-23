@@ -1,4 +1,4 @@
-(ns ^:figwheel-hooks clork.view
+(ns ^:figwheel-hooks clojourney.view
   (:require
    [goog.dom :as gdom]
    [reagent.core :as reagent :refer [atom]]
@@ -41,25 +41,34 @@
     [{:type :error
       :text "Error!"}]))
 
+(defn show-spinner! []
+  (swap! app-state #(assoc % :spinner true)))
+
+(defn hide-spinner! []
+  (swap! app-state #(assoc % :spinner false)))
+
 (defn send-input [input]
   (go
-    (swap! app-state #(assoc % :spinner true))
+    (show-spinner!)
     (let [response (<! (http/post "http://localhost:3000/action"
                                   {:with-credentials? false
                                    :headers {"Accept" "application/edn"}
                                    :edn-params {:input input}}))]
       (append-to-history! (process-server-response (get-in response [:body :message])))
-      (swap! app-state #(assoc % :spinner false)))))
+      (hide-spinner!))))
 
 (defn reset-game []
-  (go (let [response (<! (http/post "http://localhost:3000/reset-game"
-                                    {:with-credentials? false
-                                     :headers {"Accept" "application/edn"}
-                                     ;;:edn-params {:input "foo"}
-                                     }))]
-        (swap! app-state #(assoc % :history []))
-        (append-to-history! (process-server-response
-                             (get-in response [:body :message]))))))
+  (go
+    (show-spinner!)
+    (let [response (<! (http/post "http://localhost:3000/reset-game"
+                                  {:with-credentials? false
+                                   :headers {"Accept" "application/edn"}
+                                   ;;:edn-params {:input "foo"}
+                                   }))]
+      (swap! app-state #(assoc % :history []))
+      (append-to-history! (process-server-response
+                           (get-in response [:body :message])))
+      (hide-spinner!))))
 
 (defn chat-input [] 
   (let [written-text (atom "")]
@@ -88,7 +97,7 @@
 
 (defn game []
   [:div {:class "content"}
-   [:h1 "Clork"]
+   [:h1 "Clojourney"]
    (map-indexed (fn [idx item]
                   (into [:div {:key idx
                                :class (str "reply " (name (:type item)))}

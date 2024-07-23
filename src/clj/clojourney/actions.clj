@@ -1,5 +1,4 @@
-(ns clork.actions)
-
+(ns clojourney.actions)
 
 (defn new-location-id [game direction]
   (let [current-location-id (get-in game [:player :location])]

@@ -1,4 +1,4 @@
-(ns clork.server
+(ns clojourney.server
   (:require [com.stuartsierra.component :as component]
             [ring.adapter.jetty :refer [run-jetty]]))
 

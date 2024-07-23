@@ -1,4 +1,4 @@
-(ns clork.util)
+(ns clojourney.util)
 
 (defn player-location [game]
   (let [location-id (get-in game [:player :location])

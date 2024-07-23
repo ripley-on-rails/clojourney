@@ -1,7 +1,7 @@
-(ns clork.ai
+(ns clojourney.ai
   (:require [ollama-whisperer.core :refer [generate chat] :as ow]
             [cheshire.core :as json]
-            [clork.util :as util]
+            [clojourney.util :as util]
             [taoensso.timbre :as timbre :refer [info]]
             [manifold.deferred :as d]))
 

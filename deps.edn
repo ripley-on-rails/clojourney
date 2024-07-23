@@ -37,4 +37,4 @@
                                   "--port" "7888"]
                       :exec-fn nrepl.cmdline/-main}
            :min   {:main-opts ["-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]}
-           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "clork.test-runner"]}}}
+           :test  {:main-opts ["-m" "figwheel.main" "-co" "test.cljs.edn" "-m" "clojourney.test-runner"]}}}

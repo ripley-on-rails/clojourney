@@ -1,9 +1,9 @@
-(ns clork.handler
+(ns clojourney.handler
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [ring.util.response :refer [response content-type]]
             [clojure.edn :as edn]
-            [clork.game :as game]
+            [clojourney.game :as game]
             [ring.middleware.format-response :refer [wrap-format-response]]
             [ring.middleware.cors :refer [wrap-cors]]
             [ring.middleware.anti-forgery :refer :all]
