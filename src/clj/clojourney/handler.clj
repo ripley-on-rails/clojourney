@@ -11,14 +11,16 @@
 
 (defroutes app-routes
   (POST "/action" {:keys [body]}
-    (let [reply (game/process-user-instructions (:input body))]
-      (-> (response {:message reply})
+    (let [reply (game/process-user-instructions (:game body) (:input body))]
+      (prn body)
+      (-> (response reply)
           (content-type "application/edn"))))
   (POST"/reset-game" _
     (do
-      (game/reset-game!)
-      (-> (response {:message (game/describe)})
-          (content-type "application/edn"))))
+      (let [game game/initial-game]
+        (-> (response {:message (game/describe game)
+                       :game game})
+            (content-type "application/edn")))))
   (route/not-found "Not Found"))
 
 

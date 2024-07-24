@@ -3,7 +3,6 @@ div.reply {
     border: 2px solid #24283b; /* Adjust the border color and width as needed */
     border-radius: 15px; /* Adjust the radius to control the roundness */
     padding: 15px; /* Optional: Add some padding inside the border */
-    margin: 10px 0; /* Optional: Add some margin between paragraphs */
     background-color: #f9f9f9; /* Optional: Set a background color */
     color: #1a1b26;
 
@@ -43,19 +42,25 @@ body, html {
     background-color: #1a1b26;
     color: #9aa5ce;
     justify-content: center;
-    align-items: center;
     font-family: 'Helvetica Neue', Arial, sans-serif; /* Set the font for the entire page */
 }
 
+.hide {
+    display: none;
+}
+
 .content input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    box-sizing: border-box;
-    border-radius: 8px; /* Adjust this value for the desired roundness */
-    border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+			     width: 100%;
+			     padding: 10px;
+			     box-sizing: border-box;
+			     border-radius: 8px; /* Adjust this value for the desired roundness */
+			     border: 1px solid #ccc; /* Optional: Add a border for better visibility */
 }
 
 .content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
     width: 100%; /* Full width by default */
     height: 100vh; /* Full height of the viewport */
     box-sizing: border-box; /* Include padding and border in the element's total width and height */
@@ -115,7 +120,7 @@ input[type="button"]:focus {
 
 
 /* spinner */
-
+/* Copied and modified from https://github.com/vineethtrv/css-loader */
 
 .loader {
     

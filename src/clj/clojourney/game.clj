@@ -26,17 +26,6 @@
         schema-pairs (interleave predicates schemata)]
     (apply s/conditional schema-pairs)))
 
-(defn instructions->schemata [instructions]
-  (apply array-map
-         (mapcat (fn [[pattern outcome]]
-                   (if (vector? (first pattern))
-                     [(apply combine-schemata
-                             (map verb-target-with->schema pattern))
-                      outcome]
-                     (let [new-pattern (verb-target-with->schema pattern)]
-                       [new-pattern outcome])))
-                 instructions)))
-
 (def initial-game {:player {:location :orchard
                             :inventory []
                             :state #{"hungry"}}
@@ -71,58 +60,71 @@
                                         :items [{:name "dragon"
                                                  :description "A frolicking dragon that tells the player to kiss them for they are an enchanted dragon."
                                                  :on-take-desc "Player loving tries to lift dragon but realizes it is too heavy. The dragon looks at the player somewhat confused. "}
-                                                {:name "sword"}]}}
+                                                {:name "sword"
+                                                 :takeable true}]}}
                            :connections [[:orchard "north" :treasure-chamber "path"]
                                          [:orchard "up" :orchard-up "ladder"]
                                          [:orchard-up "down" :orchard "ladder"]
                                          [:treasure-chamber "south" :orchard "path"]]
-                           :directions #{"north" "south" "west" "east" "up" "down"}}
-                   :history []
-                   :instructions (array-map
-                                  ;;["put"]
-                                  [["climb" "ladder" nil] 
-                                   ["climb" "up" "ladder"]
-                                   ["climb" "up" nil] 
-                                   ["climb" "ripe apple tree" "ladder"]]
-                                  (fn [game _]
-                                    (actions/move game {:verb "go"
-                                                        :target "up"
-                                                        :with "ladder"}))
-                                  ;; change state to be on ladder
+                           :directions #{"north" "south" "west" "east" "up" "down"}}})
 
-                                  [["climb" "down" "ladder"]
-                                   ["climb" "down" nil]]
-                                  (fn [game _]
-                                    (actions/move game {:verb "go"
-                                                        :target "down"
-                                                        :with "ladder"}))
+(defn instructions->schemata [instructions]
+  (apply array-map
+         (mapcat (fn [[pattern outcome]]
+                   (if (vector? (first pattern))
+                     [(apply combine-schemata
+                             (map verb-target-with->schema pattern))
+                      outcome]
+                     (let [new-pattern (verb-target-with->schema pattern)]
+                       [new-pattern outcome])))
+                 instructions)))
 
-                                  ["eat" "apple" :any] actions/eat
+(def instructions (instructions->schemata
+                   (array-map
+                    ;;["put"]
+                    [["climb" "ladder" nil] 
+                     ["climb" "up" "ladder"]
+                     ["climb" "up" nil] 
+                     ["climb" "ripe apple tree" "ladder"]]
+                    (fn [game _]
+                      (actions/move game {:verb "go"
+                                          :target "up"
+                                          :with "ladder"}))
+                    ;; change state to be on ladder
 
-                                  ["sleep" :any :any] actions/unmatched
-                                  
-                                  ["rest" :any :any] actions/unmatched
-                                  
-                                  ["go" :any :any]
-                                  (fn [game sentence]
-                                    (actions/move game sentence))
-                                  
-                                  ["put" :any :any] actions/unmatched
-                                  ["take" :any :any] actions/pickup
-                                  
-                                  [:any :any :any] actions/unmatched)})
+                    [["climb" "down" "ladder"]
+                     ["climb" "down" nil]]
+                    (fn [game _]
+                      (actions/move game {:verb "go"
+                                          :target "down"
+                                          :with "ladder"}))
 
-(defonce game-state (atom initial-game))
+                    ["eat" "apple" :any] actions/eat
+                    ["eat" :any :any] actions/eat
+                    
+                    ["attack" "dragon" "sword"] actions/unmatched
+                    ["attack" "dragon" :any] actions/unmatched
+                    ["attach" :any :any] actions/unmatched
+                    ["kiss" "dragon" :any] actions/unmatched
 
-(defn reset-game! [] (reset! game-state initial-game))
+                    ["climb" :any :any] actions/move
+                    ["go" :any :any] actions/move
+                    #_(fn [game sentence]
+                        (actions/move game sentence))
+                    
+                    ["put" :any :any] actions/unmatched
+                    ["take" :any :any] actions/pickup
+                    
+                    [:any :any :any] actions/unmatched)))
+
+;;(defonce game-state (atom initial-game))
+
+;;(defn reset-game! [] (reset! game-state initial-game))
 
 ;;(def directions [:north, :south, :west, :east, :up, :down])
 
-(defn describe []
-  (let [description @(ai/describe @game-state )]
-    (swap! game-state
-           (fn [s]
-             (update s :history #(conj % description))))
+(defn describe [game-state]
+  (let [description @(ai/describe game-state)]
     description))
 
 (defn available-items [game]
@@ -130,8 +132,7 @@
     (concat (:items player) (:items location))))
 
 (defn available-verbs [game]
-  (->> game
-       :instructions
+  (->> instructions
        keys
        (mapcat (fn [pattern_s]
                  (if (vector? (first pattern_s))
@@ -174,7 +175,7 @@
   (let [pattern [verb target with]]
     (second (first (filter (fn [[k v]]
                              (not (s/check k pattern)))
-                           (instructions->schemata available-instructions))))))
+                           available-instructions)))))
 
 (defn idp [x] (prn x) x)
 
@@ -185,9 +186,8 @@
           :sentence sentence}
          (instruction game sentence)))
 
-(defn process-user-instructions [command]
-  (let [game @game-state
-        items (available-items game)
+(defn process-user-instructions [game command]
+  (let [items (available-items game)
         verbs (available-verbs game)
         directions (available-directions game) ;; todo check nil
         sentence (-> (ai/process-user-instructions command
@@ -202,10 +202,11 @@
                          (info "saitized instructions" {:data %})
                          %))
                      (ai/normalize-sentence items verbs directions))
-        instruction (find-instruction sentence (:instructions game))
+        instruction (find-instruction sentence instructions)
         consequence (exec-instruction game sentence instruction)
-        ;;consequence (dissoc consequence :game)
-        ]
-    (reset! game-state (:game consequence))
+        game (:game consequence)]
+    (prn "?")
+    (prn consequence)
     ;;(update-in (ai/explain-consequence consequence) [:game] dissoc :instructions)
-    (dissoc (ai/explain-consequence consequence) :game)))
+    {:message (dissoc (ai/explain-consequence consequence) :game)
+     :game game}))

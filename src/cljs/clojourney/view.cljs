@@ -10,7 +10,10 @@
 
 (defonce app-state (atom {:history []
                           :text ""
-                          :spinner false}))
+                          :spinner false
+                          :debug false}))
+
+(defonce game-state (atom nil))
 
 (defn get-app-element [] 
   (gdom/getElement "app"))
@@ -19,8 +22,6 @@
   (swap! app-state
          (fn [s]
            (update s :history #(concat % msgs)))))
-
-(defn idp [x] (prn x) x)
 
 (defn process-server-response [response]
   (cond
@@ -53,8 +54,10 @@
     (let [response (<! (http/post "http://localhost:3000/action"
                                   {:with-credentials? false
                                    :headers {"Accept" "application/edn"}
-                                   :edn-params {:input input}}))]
+                                   :edn-params {:input input
+                                                :game @game-state}}))]
       (append-to-history! (process-server-response (get-in response [:body :message])))
+      (reset! game-state (get-in response [:body :game]))
       (hide-spinner!))))
 
 (defn reset-game []
@@ -66,8 +69,9 @@
                                    ;;:edn-params {:input "foo"}
                                    }))]
       (swap! app-state #(assoc % :history []))
-      (append-to-history! (process-server-response
-                           (get-in response [:body :message])))
+      (let [body (:body response)]
+        (append-to-history! (process-server-response (:message body)))
+        (reset! game-state (:game body)))
       (hide-spinner!))))
 
 (defn chat-input [] 
@@ -92,17 +96,29 @@
 
 
 (defn- history-entry->items [entry]
-  (prn entry)
   [entry])
+
+(defn toggle-debug []
+  (swap! app-state update :debug not))
+
+(defn debug? []
+  (:debug @app-state))
 
 (defn game []
   [:div {:class "content"}
    [:h1 "Clojourney"]
-   (map-indexed (fn [idx item]
-                  (into [:div {:key idx
-                               :class (str "reply " (name (:type item)))}
-                         (render-paragraphs (:text item))]))
-                (:history @app-state))
+   (doall
+    (map-indexed (fn [idx item]
+                   (let [type (:type item)]
+                     (into [:div {:key idx
+                                  :class (str "reply "
+                                              (name type) " "
+                                              (or (and (= type :debug)
+                                                       (not (debug?))
+                                                       "hide")
+                                                  ""))}
+                            (render-paragraphs (:text item))])))
+                 (:history @app-state)))
    (if (not (:spinner @app-state))
      [:<>
       (let [history? (not (empty? (:history @app-state)))]
@@ -114,6 +130,11 @@
             [:input {:type "button"
                      :value "Send"
                      :on-click (fn [] (reset-game)) :href "#"}]]]))
+      [:label [:input {:type "checkbox"
+                       :name "debug"
+                       :value "debug"
+                       :checked (:debug @app-state)
+                       :on-change toggle-debug}] "Debug mode"] 
       [:input {:type "button"
                :value "Start new game"
                :class "reset-button"
