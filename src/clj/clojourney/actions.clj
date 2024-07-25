@@ -39,6 +39,16 @@
        (filter #(= name (:name %)))
        first))
 
+(defn- find-item [game name]
+  (let [player-location-id (get-in game [:player :location])
+        item-in-location (item-by-name-in-location game name player-location-id)
+        item-in-inventory (item-by-name-in-inventory game name)]
+    {:item (or item-in-location item-in-inventory)
+     :location-id (if item-in-location
+                    player-location-id
+                    (if item-in-inventory
+                      :inventory))}))
+
 (defn- remove-item [game item location-id]
   (let [path (if (= location-id :inventory)
                [:player :inventory]
@@ -56,29 +66,34 @@
              (fn [inventory]
                (conj inventory item))))
 
+(defn idp [x] (prn x) x)
+
 (defn- transfer-item-from-location-to-inventory [game item location-id]
   (-> game
       (remove-item item location-id)
       (add-item-to-inventory item)))
 
+
 (defn pickup [game {:keys [target]}]
-  (let [location-id (get-in game [:player :location])
-        item-in-location (item-by-name-in-location game target location-id)
-        item-in-inventory (item-by-name-in-inventory game target)]
-    (if item-in-location
-      (if (:takeable item-in-location)
-        {:game (transfer-item-from-location-to-inventory game item-in-location location-id)
-         :message (format "Player takes %s and puts it into their inventory. %s"
-                          target
-                          (:on-take-desc item-in-location))}
-        {:failure true
-         :message (:on-take-desc item-in-location)})
-      (if item-in-inventory
-        {:failure true
-         :message (format "Player already has %s in inventory. " target)}
-        {:failure true
-         :message (format "There is no such item %s here. " target)})))
-  )
+  (let [{:keys [location-id item]} (find-item game target)]
+    (cond
+      (not item)
+      {:failure true
+       :message (format "There is no such item %s here. " target)}
+      
+      (= location-id :inventory)
+      {:failure true
+       :message (format "Player already has %s in inventory. " target)}
+
+      (:takeable item)
+      {:game (transfer-item-from-location-to-inventory game item location-id)
+       :message (format "Player takes %s and puts it into their inventory. %s"
+                        target
+                        (:on-take-desc item))}
+
+      :else
+      {:failure true
+       :message (:on-take-desc item)})))
 
 ;; eat
 
@@ -90,27 +105,87 @@
       {:game game})))
 
 (defn eat [game {:keys [target]}]
-  (let [location-id (get-in game [:player :location])
-        item-in-location (item-by-name-in-location game target location-id)
-        item-in-inventory (item-by-name-in-inventory game target)
-        found-item (or item-in-location
-                       item-in-inventory)
-        found-in (and found-item
-                      (or (and item-in-location location-id)
-                          :inventory))]
-    (if found-item
-      (if (:edible found-item)
-        (let [{:keys [game additional-desc]}
-              (-> game
-                  (remove-item item-in-inventory :inventory)
-                  decrease-hunger)]
-          {:game game
-           :message (str (format "Player eats %s. " target)
-                         additional-desc)})
-        {:failure true
-         :message (format "%s is not edible" target)})
+  (let [{:keys [location-id item]} (find-item game target)]
+    (cond
+      (not item)
       {:failure true
-       :message (format "There is no such item %s here. " target)})))
+       :message (format "There is no such item %s here. " target)}
+
+      (:edible item)
+      (let [{:keys [game additional-desc]}
+            (-> game
+                (remove-item item :inventory)
+                decrease-hunger)]
+        {:game game
+         :message (str (format "Player eats %s. " target)
+                       additional-desc)})
+
+      :else
+      {:failure true
+       :message (format "%s is not edible" target)})))
+
+
+;; talk
+
+(defn talk [game {:keys [target]}]
+  (let [{:keys [location-id item]} (find-item game target)]
+    (cond
+      (not item)
+      {:failure true
+       :message (format "There is no %s to talk to. " target)}
+
+      (:on-talk item)
+      {:message (:on-talk item)}
+
+      :else
+      {:failure true
+       :message (format "The player does not know how to talk to %s or what to talk about with it. " target)})))
+
+;; attack
+(defn attack [game {:keys [target with]}]
+  (let [{target-location-id :location-id
+         target-item :item} (find-item game target)
+        {with-location-id :location-id
+         with-item :item} (find-item game with)]
+    (prn "attack")
+    (prn [target-location-id target-item with-location-id with-item])
+    (cond
+      (not target-item)
+      {:failure true
+       :message (format "There is no %s to attack. " target)}
+
+      (not with-item)
+      {:failure true
+       :message (format "You don't have %s to attack %s with. " with target)}
+
+      (not= :inventory with-location-id)
+      {:message (format "You don't have %s on you. But there's one near by. " with)}
+
+
+      
+      :else
+      {:failure true}
+      )))
+
+;; kiss
+(defn kiss [game {:keys [target]}]
+  (let [{:keys [location-id item]} (find-item game target)]
+    (cond
+      (not item)
+      {:failure true
+       :message (format "There is no %s to kiss. " target)}
+
+      (= "dragon" target)
+      {:message "Say literally: 'You kiss the dragon and you liked it.'"}
+
+      :else
+      {:message (format "The player kisses %s." target)})))
+
+;; redirect
+(defn redirect [sentence]
+  (fn [_ _]
+    {:redirect true
+     :sentence sentence}))
 
 ;; Unmatched
 

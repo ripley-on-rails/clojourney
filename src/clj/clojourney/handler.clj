@@ -9,10 +9,11 @@
             [ring.middleware.anti-forgery :refer :all]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
 
+(defn idp [x] (prn x) x)
+
 (defroutes app-routes
   (POST "/action" {:keys [body]}
     (let [reply (game/process-user-instructions (:game body) (:input body))]
-      (prn body)
       (-> (response reply)
           (content-type "application/edn"))))
   (POST"/reset-game" _

@@ -65,19 +65,26 @@ Here's the sentence for you to parse: %s")
 ;; funny: lean ladder against tree -> {:verb "lean", :target "ladder", :with "ripe apple tree"}
 
 (def instruction-parsing-prompt3
-  "Here's a list of verbs: %s. Here's a list of items: %s. Here's a list of directions: %s. You will later map a sentence to a edn map with the possible keys: `:verb` (denoting the action), `:with` (denoting the instrumentalis in the sentence and must be in the list of items and must not be one of the verbs from the list), `:target` (denoting the object the action is directed at or an accusative and must be either an item from the list or a direction from the list and must not be one of the verbs from the list) that matches closest to the list of words. Target and with must Try to match the verb expresses the sementic notion instead of being literal and is most specific. Example output for \"take elevator up\" would be {:verb \"go\" :target \"up\", :with \"elevator\"}. Another example: The output for \"walk south\" would be {:verb \"go\" :target \"south\"}. If no good match exists omit the key or return `nil` as the value. Do not check if the sentence makes sense.
+  "Here's a list of verbs: %s. Here's a list of items: %s. \n\n Here's a list of directions: %s. You will later map a sentence to a edn map with the possible keys: `:verb` (denoting the action), `:with` (denoting the instrumentalis in the sentence and must be in the list of items and must not be one of the verbs from the list), `:target` (denoting the object the action is directed at or an accusative and must be either an item from the list or a direction from the list and must not be one of the verbs from the list) that matches closest to the list of words. Target and with must Try to match the verb expresses the sementic notion instead of being literal and is most specific. Example output for \"take elevator up\" would be {:verb \"go\" :target \"up\", :with \"elevator\"}. Another example: The output for \"walk south\" would be {:verb \"go\" :target \"south\"}. If no good match exists omit the key or return `nil` as the value. Do not check if the sentence makes sense. Do not assume intent or positive or negative attitudes of the items and creatures involved. Do not interpret the sentence semantically. Add a fourth key to the map `:explanation` in which ypu explain your choice.
 
 Example output for \"eat food with cutlery\" is {:verb \"eat\", :target \"apple\", :with \"fork\"}. Example output for \"foo\" is `nil`. Example output for \"eat ladder\" is `{:verb \"eat\" :target \"ladder\"}`. If a verb or item is not explicitly mentioned leave that place in the tuple empty as the nil value. Only return the edn without further text in your reply. Make sure the keys are keywords. If the sentence does not provide enough information to form a map return nil instead. Make sure what you return is a proper edn map or edn vector of edn maps and not strings of edn maps.
 
 Here's the sentence for you to parse: %s")
 
+(defn remove-encompassing-quotes [s]
+  (let [text (clojure.string/trim s)]
+    (let [pattern #"^(\"|')(.*?)(\1)$"]
+      (if-let [matches (re-matches pattern text)]
+        (nth matches 2)
+        text))))
 
 (defn process-user-instructions [command items verbs directions]
   (let [verbs (seq->comma-list verbs)
         items (seq->comma-list (map :name items))
         directions (seq->comma-list directions)
         prompt (format instruction-parsing-prompt3 verbs items directions command)        
-        reply @(send-prompt prompt)]
+        reply (-> @(send-prompt prompt)
+                  remove-encompassing-quotes)]
     
     reply))
 
@@ -121,6 +128,7 @@ Here's the sentence for you to parse: %s")
             (format "Here is a list of items: %s. Which one is the best fit (synonymous or closely related) to the word \"%s\"? Only return the word itself without further explanation or addtional text. Only return the best fit (even if its the original word) or if the word cannot be matched return the word itself without further explanation or addtional text."
                     (seq->comma-list valid-words)
                     word)]
+        ;; TODO add retries
         (-> (send-prompt prompt 0.0)
             (d/chain
              parse-json
@@ -159,7 +167,7 @@ Here's the sentence for you to parse: %s")
                    "Do not make up this that are not explicitly there. "
                    "Do not make suggestions to the player on how to formualte instructions. "
                    ;;"If the instrument (:with value) is nil ignore it entirely. "
-                   "I want you to paraphrase the following (and only the following) in a few words addressing the user directly with \"you\": " (print-str sentence) ". "
+                   "I want you to paraphrase the following (and only the following) in a few words addressing the user directly with \"you\" (don't mention they're the player): " (print-str sentence) ". "
                    (if failure
                      (str "Express that the user failed at this action. "
                           (if message

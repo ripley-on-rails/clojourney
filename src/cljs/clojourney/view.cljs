@@ -57,18 +57,20 @@
                                    :edn-params {:input input
                                                 :game @game-state}}))]
       (append-to-history! (process-server-response (get-in response [:body :message])))
-      (reset! game-state (get-in response [:body :game]))
+      (prn response)
+      (if-let [game (get-in response [:body :game])]
+        (reset! game-state game))
       (hide-spinner!))))
 
 (defn reset-game []
   (go
     (show-spinner!)
+    (swap! app-state #(assoc % :history []))
     (let [response (<! (http/post "http://localhost:3000/reset-game"
                                   {:with-credentials? false
                                    :headers {"Accept" "application/edn"}
                                    ;;:edn-params {:input "foo"}
                                    }))]
-      (swap! app-state #(assoc % :history []))
       (let [body (:body response)]
         (append-to-history! (process-server-response (:message body)))
         (reset! game-state (:game body)))

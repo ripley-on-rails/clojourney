@@ -26,8 +26,8 @@
         schema-pairs (interleave predicates schemata)]
     (apply s/conditional schema-pairs)))
 
-(def initial-game {:player {:location :orchard
-                            :inventory []
+(def initial-game {:player {:location #_:orchard :treasure-chamber
+                            :inventory [{:name "bare hands"}]
                             :state #{"hungry"}}
                    :world {:locations {:orchard
                                        {:id :orchard
@@ -58,8 +58,12 @@
                                        {:id :treasure-chamber
                                         :name "Castle's treasure chamber"
                                         :items [{:name "dragon"
-                                                 :description "A frolicking dragon that tells the player to kiss them for they are an enchanted dragon."
-                                                 :on-take-desc "Player loving tries to lift dragon but realizes it is too heavy. The dragon looks at the player somewhat confused. "}
+                                                 :description "A frolicking dragon that prompts to talk to them."
+                                                 :on-take-desc "Player loving tries to lift dragon but realizes it is too heavy. The dragon looks at the player somewhat confused. "
+                                                 :on-talk #_"The dragon explains that they (the dragon) are an enchanted dragon. It wants the player to kiss them. They look at the player with anticipation. Make the dragon use direct speech here for the explanation. "
+                                                 "The dragon says, \"I am an enchanted dragon. Kiss me to set me free!\". They look at the player with anticipation."
+                                                 #_ "Make the dragon use direct speech here for the explanation. "
+                                                 #_"The dragon says, \"I'm an enchanted dragon. Please kiss me!\". They look at the player with anticipation."}
                                                 {:name "sword"
                                                  :takeable true}]}}
                            :connections [[:orchard "north" :treasure-chamber "path"]
@@ -79,49 +83,59 @@
                        [new-pattern outcome])))
                  instructions)))
 
-(def instructions (instructions->schemata
-                   (array-map
-                    ;;["put"]
-                    [["climb" "ladder" nil] 
-                     ["climb" "up" "ladder"]
-                     ["climb" "up" nil] 
-                     ["climb" "ripe apple tree" "ladder"]]
-                    (fn [game _]
-                      (actions/move game {:verb "go"
-                                          :target "up"
-                                          :with "ladder"}))
-                    ;; change state to be on ladder
+(def raw-instructions
+  (array-map
+   ;;["put"]
+   [["climb" "ladder" nil] 
+    ;;["climb" "up" "ladder"]
+    ["climb" "up" nil]
+    ["climb" "ripe apple tree" "ladder"]
+    ["go" "up" :any]]
+   (actions/redirect {:verb "climb"
+                      :target "up"
+                      :with "ladder"})
 
-                    [["climb" "down" "ladder"]
-                     ["climb" "down" nil]]
-                    (fn [game _]
-                      (actions/move game {:verb "go"
-                                          :target "down"
-                                          :with "ladder"}))
+   ["climb" "up" "ladder"] actions/move
 
-                    ["eat" "apple" :any] actions/eat
-                    ["eat" :any :any] actions/eat
-                    
-                    ["attack" "dragon" "sword"] actions/unmatched
-                    ["attack" "dragon" :any] actions/unmatched
-                    ["attach" :any :any] actions/unmatched
-                    ["kiss" "dragon" :any] actions/unmatched
 
-                    ["climb" :any :any] actions/move
-                    ["go" :any :any] actions/move
-                    #_(fn [game sentence]
-                        (actions/move game sentence))
-                    
-                    ["put" :any :any] actions/unmatched
-                    ["take" :any :any] actions/pickup
-                    
-                    [:any :any :any] actions/unmatched)))
+   [["go" "down" :any]
+    ["climb" "down" nil]]
+   (actions/redirect {:verb "climb"
+                      :target "down"
+                      :with "ladder"})
 
-;;(defonce game-state (atom initial-game))
+   ["climb" "down" "ladder"] actions/move
+   
+   ;;["eat" "apple" :any] actions/eat
+   ["eat" :any :any] actions/eat
 
-;;(defn reset-game! [] (reset! game-state initial-game))
+   ["talk" :any :any] actions/talk
+   
+   ["attack" "dragon" "sword"] actions/attack
+   ["attack" "dragon" "bare hands"] actions/attack
+   
+   ["attack" "dragon" :any]
+   (actions/redirect {:verb "attack"
+                      :target "dragon"
+                      :with "bare hands"})
 
-;;(def directions [:north, :south, :west, :east, :up, :down])
+   ["attack" :any nil]
+   (fn [_ {:keys [verb target]}]
+     {:redirect true
+      :sentence {:verb verb, :target target, :with "bare hands"}})
+   
+   ["attack" :any :any] actions/attack
+   ["kiss" :any :any] actions/kiss
+
+   ["climb" :any :any] actions/move
+   ["go" :any :any] actions/move
+   
+   ["put" :any :any] actions/unmatched
+   ["take" :any :any] actions/pickup
+   
+   [:any :any :any] actions/unmatched))
+
+(def instructions (instructions->schemata raw-instructions))
 
 (defn describe [game-state]
   (let [description @(ai/describe game-state)]
@@ -129,10 +143,11 @@
 
 (defn available-items [game]
   (let [{:keys [player location]} (util/player-location game)]
-    (concat (:items player) (:items location))))
+    (idp
+     (concat (:items player) (:items location)))))
 
 (defn available-verbs [game]
-  (->> instructions
+  (->> raw-instructions
        keys
        (mapcat (fn [pattern_s]
                  (if (vector? (first pattern_s))
@@ -177,14 +192,17 @@
                              (not (s/check k pattern)))
                            available-instructions)))))
 
-(defn idp [x] (prn x) x)
-
-(defn exec-instruction [game sentence instruction]
-  (merge {:game game
-          :failure false
-          :describe? false
-          :sentence sentence}
-         (instruction game sentence)))
+(defn exec-instruction [game sentence]
+  (let [instruction (find-instruction sentence instructions)
+        result (merge {:game game
+                       :failure false
+                       :redirect false
+                       :describe? false
+                       :sentence sentence}
+                      (instruction game sentence))]
+    (if (:redirect result)
+      (exec-instruction (:game result) (:sentence result))
+      result)))
 
 (defn process-user-instructions [game command]
   (let [items (available-items game)
@@ -199,14 +217,12 @@
                          %))
                      sanitize-instructions
                      (#(do
-                         (info "saitized instructions" {:data %})
+                         (info "sanitized instructions" {:data %})
                          %))
                      (ai/normalize-sentence items verbs directions))
-        instruction (find-instruction sentence instructions)
-        consequence (exec-instruction game sentence instruction)
+        ;;instruction (find-instruction sentence instructions)
+        consequence (exec-instruction game sentence)
         game (:game consequence)]
-    (prn "?")
-    (prn consequence)
     ;;(update-in (ai/explain-consequence consequence) [:game] dissoc :instructions)
     {:message (dissoc (ai/explain-consequence consequence) :game)
      :game game}))
