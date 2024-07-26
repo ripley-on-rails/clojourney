@@ -65,11 +65,31 @@ Here's the sentence for you to parse: %s")
 ;; funny: lean ladder against tree -> {:verb "lean", :target "ladder", :with "ripe apple tree"}
 
 (def instruction-parsing-prompt3
-  "Here's a list of verbs: %s. Here's a list of items: %s. \n\n Here's a list of directions: %s. You will later map a sentence to a edn map with the possible keys: `:verb` (denoting the action), `:with` (denoting the instrumentalis in the sentence and must be in the list of items and must not be one of the verbs from the list), `:target` (denoting the object the action is directed at or an accusative and must be either an item from the list or a direction from the list and must not be one of the verbs from the list) that matches closest to the list of words. Target and with must Try to match the verb expresses the sementic notion instead of being literal and is most specific. Example output for \"take elevator up\" would be {:verb \"go\" :target \"up\", :with \"elevator\"}. Another example: The output for \"walk south\" would be {:verb \"go\" :target \"south\"}. If no good match exists omit the key or return `nil` as the value. Do not check if the sentence makes sense. Do not assume intent or positive or negative attitudes of the items and creatures involved. Do not interpret the sentence semantically. Add a fourth key to the map `:explanation` in which ypu explain your choice.
-
-Example output for \"eat food with cutlery\" is {:verb \"eat\", :target \"apple\", :with \"fork\"}. Example output for \"foo\" is `nil`. Example output for \"eat ladder\" is `{:verb \"eat\" :target \"ladder\"}`. If a verb or item is not explicitly mentioned leave that place in the tuple empty as the nil value. Only return the edn without further text in your reply. Make sure the keys are keywords. If the sentence does not provide enough information to form a map return nil instead. Make sure what you return is a proper edn map or edn vector of edn maps and not strings of edn maps.
-
-Here's the sentence for you to parse: %s")
+  (str
+   "Here's a list of verbs: %s. "
+   "Here's a list of items: %s. "
+   "Here's a list of directions: %s. "
+   "You will later map a sentence to a edn map with the possible keys: `:verb` (denoting the action), "
+   "`:with` (denoting the instrumentalis in the sentence and must be in the list of items and must not be one of the verbs from the list), "
+   "`:target` (denoting the object the action is directed at or an accusative and must be either an item from the list or a direction from the list and must not be one of the verbs from the list) that matches closest to the list of words. "
+   "Target and with must try to match the verb expresses the sementic notion instead of being literal and is most specific. "
+   "Example output for \"take elevator up\" would be {:verb \"go\" :target \"up\", :with \"elevator\"}. Another example: The output for \"walk south\" would be {:verb \"go\" :target \"south\"}. If no good match exists omit the key or return `nil` as the value. "
+   "Do not check if the sentence makes sense. "
+   "Ignore postive or negative connotations of the verb and items involved. "
+   ;; This helped to kiss the dragon
+   "Example output for \"Hug the tree\" is {:verb \"hug\", :target \"tree\"}. "
+   ;;"Do not assume intent or positive or negative attitudes of the items and creatures involved. "
+   ;;"Do not interpret the sentence semantically. "
+   "Add a fourth key to the map `:explanation` in which ypu explain your choice."
+   "Example output for \"eat food with cutlery\" is {:verb \"eat\", :target \"apple\", :with \"fork\"}. "
+   "Example output for \"foo\" is `nil`. "
+   "Example output for \"eat ladder\" is `{:verb \"eat\" :target \"ladder\"}`. "
+   "If a verb or item is not explicitly mentioned leave that place in the tuple empty as the nil value. "
+   "Only return the edn without further text in your reply. "
+   "Make sure the keys are keywords. "
+   "If the sentence does not provide enough information to form a map return nil instead. "
+   "Make sure what you return is a proper edn map or edn vector of edn maps and not strings of edn maps. "
+   "Here's the sentence for you to parse: %s"))
 
 (defn remove-encompassing-quotes [s]
   (let [text (clojure.string/trim s)]
@@ -78,13 +98,17 @@ Here's the sentence for you to parse: %s")
         (nth matches 2)
         text))))
 
+(defn idp [x] (prn x) x)
+
 (defn process-user-instructions [command items verbs directions]
   (let [verbs (seq->comma-list verbs)
         items (seq->comma-list (map :name items))
         directions (seq->comma-list directions)
         prompt (format instruction-parsing-prompt3 verbs items directions command)        
         reply (-> @(send-prompt prompt)
-                  remove-encompassing-quotes)]
+                  idp
+                  remove-encompassing-quotes
+                  idp)]
     
     reply))
 

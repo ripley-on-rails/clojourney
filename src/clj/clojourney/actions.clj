@@ -176,7 +176,7 @@
        :message (format "There is no %s to kiss. " target)}
 
       (= "dragon" target)
-      {:message "Say literally: 'You kiss the dragon and you liked it.'"}
+      {:message "You kiss the dragon. It blushes then turns into a dis-enchanted frog. The frog expressed the wish to talk to you."}
 
       :else
       {:message (format "The player kisses %s." target)})))

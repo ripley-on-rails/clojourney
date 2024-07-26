@@ -58,7 +58,7 @@
                                        {:id :treasure-chamber
                                         :name "Castle's treasure chamber"
                                         :items [{:name "dragon"
-                                                 :description "A frolicking dragon that prompts to talk to them."
+                                                 :description "A frolicking dragon. They urges you to talk to them/converse with them."
                                                  :on-take-desc "Player loving tries to lift dragon but realizes it is too heavy. The dragon looks at the player somewhat confused. "
                                                  :on-talk #_"The dragon explains that they (the dragon) are an enchanted dragon. It wants the player to kiss them. They look at the player with anticipation. Make the dragon use direct speech here for the explanation. "
                                                  "The dragon says, \"I am an enchanted dragon. Kiss me to set me free!\". They look at the player with anticipation."
